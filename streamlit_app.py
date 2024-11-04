@@ -1,8 +1,9 @@
 import streamlit as st
 import sqlite3
 import random
+import time
 
-# Connect to the SQLite database (or create it if it doesn't exist)
+# Connect to the SQLite database
 conn = sqlite3.connect('prizes.db')
 c = conn.cursor()
 
@@ -13,6 +14,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS prizes (
             )''')
 conn.commit()
 
+# Functions for database operations
 def add_prize(name):
     c.execute('INSERT INTO prizes (name) VALUES (?)', (name,))
     conn.commit()
@@ -59,10 +61,31 @@ for prize_id, prize_name in get_prizes():
             delete_prize(prize_id)
             st.warning("Prize deleted")
 
-# Select a random prize
-if st.button("Pick a Random Prize"):
+# Timer functionality
+if "timer_started" not in st.session_state:
+    st.session_state.timer_started = False
+if "next_display_time" not in st.session_state:
+    st.session_state.next_display_time = 0
+
+def start_timer():
+    st.session_state.timer_started = True
+    st.session_state.next_display_time = time.time() + random.randint(300, 1200)  # 5 to 20 minutes in seconds
+
+# Start/stop timer button
+if st.session_state.timer_started:
+    st.button("Stop Timer", on_click=lambda: st.session_state.update({"timer_started": False}))
+else:
+    st.button("Start Timer", on_click=start_timer)
+
+# Display a random prize if the timer has elapsed
+if st.session_state.timer_started and time.time() >= st.session_state.next_display_time:
     prize = get_random_prize()
     if prize:
-        st.success(f"The randomly selected prize is: {prize}")
-    else:
-        st.warning("No prizes available to select from.")
+        st.balloons()  # Simulate a pop-up with balloons
+        st.success(f"🎉 The randomly selected prize is: {prize} 🎉")
+        # Schedule the next display time
+        st.session_state.next_display_time = time.time() + random.randint(300, 1200)  # Set next interval
+
+# Refresh page to simulate timer countdown
+if st.session_state.timer_started:
+    st.experimental_rerun()
